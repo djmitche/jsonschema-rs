@@ -81,7 +81,7 @@ pub enum ValidationErrorKind {
     /// The input value doesn't match any of specified options.
     Enum { options: Value },
     /// Value is too large.
-    ExclusiveMaximum { limit: f64 },
+    ExclusiveMaximum { limit: Number },
     /// Value is too small.
     ExclusiveMinimum { limit: f64 },
     /// Everything is invalid for `false` schema.
@@ -364,7 +364,7 @@ impl<'a> ValidationError<'a> {
         schema_path: JSONPointer,
         instance_path: JSONPointer,
         instance: &'a Value,
-        limit: f64,
+        limit: Number,
     ) -> ValidationError<'a> {
         ValidationError {
             instance_path,
@@ -1008,6 +1008,22 @@ mod tests {
             vec![PrimitiveType::String, PrimitiveType::Number].into(),
         );
         assert_eq!(err.to_string(), r#"42 is not of types "number", "string""#)
+    }
+
+    #[test_case(Number::from_f64(3.0).unwrap(), "3.0")]
+    #[test_case(Number::from_f64(3.5).unwrap(), "3.5")]
+    fn limit_error_display(number: Number, repr: &'static str) {
+        let instance = json!(42);
+        let err = ValidationError::exclusive_maximum(
+            JSONPointer::default(),
+            JSONPointer::default(),
+            &instance,
+            number,
+        );
+        assert_eq!(
+            err.to_string(),
+            format!(r#"42 is greater than or equal to the maximum of {}"#, repr)
+        )
     }
 
     #[test_case(true, &json!({"foo": {"bar": 42}}), &["foo", "bar"])]
